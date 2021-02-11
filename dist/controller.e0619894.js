@@ -492,7 +492,10 @@ const controlRecipes = async function () {
     const id = window.location.hash.slice(1);
     if (!id) return;
 
-    _recipeView.default.renderSpinner(); // 1) Loading recipe
+    _recipeView.default.renderSpinner(); // 0) Update results view to mark selected search result
+
+
+    _resultsView.default.update(model.getSearchResultsPage()); // 1) Loading recipe
 
 
     await model.loadRecipe(id); // 2) Rendering recipe
@@ -534,8 +537,9 @@ const controlPagination = function (goToPage) {
 const controlServings = function (newServings) {
   // Update the recipe servings in state
   model.updateServings(newServings); // Update the recipe view
+  // recipeView.render(model.state.recipe);
 
-  _recipeView.default.render(model.state.recipe);
+  _recipeView.default.update(model.state.recipe);
 };
 
 const init = function () {
@@ -5379,6 +5383,27 @@ class View {
     this._parentElement.insertAdjacentHTML('afterbegin', markup);
   }
 
+  update(data) {
+    this._data = data;
+
+    const newMarkup = this._generateMarkup();
+
+    const newDOM = document.createRange().createContextualFragment(newMarkup);
+    const newElements = Array.from(newDOM.querySelectorAll('*'));
+    const currElements = Array.from(this._parentElement.querySelectorAll('*'));
+    newElements.forEach((newEl, i) => {
+      const currEl = currElements[i];
+      console.log(newEl.isEqualNode(currEl)); // Updates changed TEXT
+
+      if (!newEl.isEqualNode(currEl) && newEl.firstChild?.nodeValue.trim() !== '') {
+        currEl.textContent = newEl.textContent;
+      } // Updates changed ATTRIBUTES
+
+
+      if (!newEl.isEqualNode(currEl)) Array.from(newEl.attributes).forEach(attr => currEl.setAttribute(attr.name, attr.value));
+    });
+  }
+
   _clear() {
     this._parentElement.innerHTML = '';
   }
@@ -5987,9 +6012,10 @@ class ResultsView extends _View.default {
   }
 
   _generateMarkupPreview(result) {
+    const id = window.location.hash.slice(1);
     return `
     <li class="preview">
-      <a class="preview__link preview__link--active" href="#${result.id}">
+      <a class="preview__link ${result.id === id ? 'preview__link--active' : ''}" href="#${result.id}">
           <figure class="preview__fig">
           <img src="${result.image}" alt="${result.title}" />
           </figure>
